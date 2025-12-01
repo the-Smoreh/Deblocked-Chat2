@@ -11,7 +11,6 @@ const onlineSide = document.getElementById('online-side');
 const jumpButton = document.getElementById('jump-to-bottom');
 const rulesModal = document.getElementById('rules-modal');
 const rulesAgree = document.getElementById('rules-agree');
-const jumpButton = document.getElementById('jump-to-bottom');
 
 let lockedUsername = '';
 
@@ -85,13 +84,6 @@ function createMessageElement(msg) {
     textNode.className = 'text';
     renderLinkedText(textNode, msg.text);
     body.append(textNode);
-  wrapper.append(header);
-
-  if (msg.type === 'text') {
-    const body = document.createElement('div');
-    body.className = 'text';
-    renderLinkedText(body, msg.text);
-    wrapper.append(body);
   } else if (msg.type === 'image') {
     const link = document.createElement('a');
     link.href = msg.url;
@@ -107,9 +99,6 @@ function createMessageElement(msg) {
   }
 
   wrapper.append(body);
-    wrapper.append(link);
-  }
-
   return wrapper;
 }
 
@@ -236,14 +225,46 @@ socket.on('online:update', count => {
   }
 });
 
-if (rulesModal && rulesAgree) {
-  rulesModal.classList.remove('dismissed');
-  rulesModal.removeAttribute('aria-hidden');
-  setTimeout(() => rulesAgree.focus(), 50);
-  rulesAgree.addEventListener('click', () => {
+function initializeRulesModal() {
+  if (!rulesModal || !rulesAgree) return;
+
+  const closeModal = () => {
     rulesModal.classList.add('dismissed');
     rulesModal.setAttribute('aria-hidden', 'true');
+    rulesModal.style.pointerEvents = 'none';
+    setTimeout(() => {
+      rulesModal.style.display = 'none';
+    }, 250);
+  };
+
+  const acceptRules = () => {
+    localStorage.setItem('rulesAccepted', 'true');
+    closeModal();
+  };
+
+  const acceptedAlready = localStorage.getItem('rulesAccepted') === 'true';
+  if (acceptedAlready) {
+    closeModal();
+    return;
+  }
+
+  rulesModal.classList.remove('dismissed');
+  rulesModal.removeAttribute('aria-hidden');
+  rulesModal.style.display = 'flex';
+  rulesModal.style.pointerEvents = 'auto';
+  setTimeout(() => rulesAgree.focus(), 50);
+
+  rulesAgree.addEventListener('click', acceptRules);
+  rulesModal.addEventListener('click', event => {
+    if (event.target === rulesModal) {
+      acceptRules();
+    }
+  });
+  window.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      acceptRules();
+    }
   });
 }
-  onlineStatus.textContent = `Online: ${count}`;
-});
+
+initializeRulesModal();
