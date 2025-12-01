@@ -7,6 +7,10 @@ const sendBtn = document.getElementById('send-btn');
 const uploadBtn = document.getElementById('upload-btn');
 const uploadInput = document.getElementById('upload-input');
 const onlineStatus = document.getElementById('online-status');
+const onlineSide = document.getElementById('online-side');
+const jumpButton = document.getElementById('jump-to-bottom');
+const rulesModal = document.getElementById('rules-modal');
+const rulesAgree = document.getElementById('rules-agree');
 const jumpButton = document.getElementById('jump-to-bottom');
 
 let lockedUsername = '';
@@ -59,6 +63,9 @@ function createMessageElement(msg) {
   const wrapper = document.createElement('div');
   wrapper.className = 'message';
 
+  const body = document.createElement('div');
+  body.className = 'message-body';
+
   const header = document.createElement('div');
   header.className = 'message-header';
 
@@ -71,6 +78,13 @@ function createMessageElement(msg) {
   timeSpan.textContent = formatTime(msg.timestamp);
 
   header.append(nameSpan, timeSpan);
+  body.append(header);
+
+  if (msg.type === 'text') {
+    const textNode = document.createElement('div');
+    textNode.className = 'text';
+    renderLinkedText(textNode, msg.text);
+    body.append(textNode);
   wrapper.append(header);
 
   if (msg.type === 'text') {
@@ -89,6 +103,10 @@ function createMessageElement(msg) {
     img.alt = `${msg.username}'s attachment`;
 
     link.append(img);
+    body.append(link);
+  }
+
+  wrapper.append(body);
     wrapper.append(link);
   }
 
@@ -211,5 +229,21 @@ socket.on('chat:history', msgs => {
 socket.on('chat:new', handleIncomingMessage);
 
 socket.on('online:update', count => {
+  const text = `Online: ${count}`;
+  onlineStatus.textContent = text;
+  if (onlineSide) {
+    onlineSide.textContent = text;
+  }
+});
+
+if (rulesModal && rulesAgree) {
+  rulesModal.classList.remove('dismissed');
+  rulesModal.removeAttribute('aria-hidden');
+  setTimeout(() => rulesAgree.focus(), 50);
+  rulesAgree.addEventListener('click', () => {
+    rulesModal.classList.add('dismissed');
+    rulesModal.setAttribute('aria-hidden', 'true');
+  });
+}
   onlineStatus.textContent = `Online: ${count}`;
 });

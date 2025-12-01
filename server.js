@@ -84,6 +84,24 @@ function sanitize(text) {
     .replace(/'/g, '&#39;');
 }
 
+const bannedWords = [
+  'fuck', 'shit', 'bitch', 'asshole', 'bastard', 'damn', 'crap', 'dick', 'piss', 'cunt',
+  'nigger', 'nigga', 'slut', 'whore', 'fag', 'faggot', 'retard', 'chink', 'spic', 'kike'
+];
+
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function censorProfanity(text) {
+  let result = text;
+  for (const word of bannedWords) {
+    const pattern = new RegExp(`\\b${escapeRegExp(word)}\\b`, 'gi');
+    result = result.replace(pattern, match => '#'.repeat(match.length));
+  }
+  return result;
+}
+
 function ensureIdentity(socket, rawUsername) {
   const trimmed = sanitize(rawUsername).trim().slice(0, 80);
   if (!trimmed) {
@@ -143,6 +161,7 @@ io.on('connection', socket => {
     if (text.length > 500) {
       text = text.slice(0, 500);
     }
+    text = censorProfanity(text);
     const message = {
       id: crypto.randomUUID(),
       username,
