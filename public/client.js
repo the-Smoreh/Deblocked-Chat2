@@ -11,6 +11,7 @@ const onlineSide = document.getElementById('online-side');
 const jumpButton = document.getElementById('jump-to-bottom');
 const rulesModal = document.getElementById('rules-modal');
 const rulesAgree = document.getElementById('rules-agree');
+const jumpButton = document.getElementById('jump-to-bottom');
 
 let lockedUsername = '';
 
@@ -84,6 +85,13 @@ function createMessageElement(msg) {
     textNode.className = 'text';
     renderLinkedText(textNode, msg.text);
     body.append(textNode);
+  wrapper.append(header);
+
+  if (msg.type === 'text') {
+    const body = document.createElement('div');
+    body.className = 'text';
+    renderLinkedText(body, msg.text);
+    wrapper.append(body);
   } else if (msg.type === 'image') {
     const link = document.createElement('a');
     link.href = msg.url;
@@ -99,6 +107,9 @@ function createMessageElement(msg) {
   }
 
   wrapper.append(body);
+    wrapper.append(link);
+  }
+
   return wrapper;
 }
 
@@ -234,3 +245,5 @@ if (rulesModal && rulesAgree) {
     rulesModal.setAttribute('aria-hidden', 'true');
   });
 }
+  onlineStatus.textContent = `Online: ${count}`;
+});
