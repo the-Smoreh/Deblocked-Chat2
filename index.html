@@ -2,41 +2,74 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Simple Chat</title>
+<title>Deblocked Chat</title>
+
+<!-- Fredoka font -->
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+
 <style>
     body {
-        background: #f5f5f5;
+        margin: 0;
         font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #ffffff, #e5e5e5, #cfcfcf);
+        height: 100vh;
         display: flex;
         justify-content: center;
+        align-items: flex-start;
         padding-top: 40px;
     }
 
     #chat-container {
-        width: 450px;
-        background: white;
-        border-radius: 12px;
+        width: 480px;
+        backdrop-filter: blur(12px);
+        background: rgba(255, 255, 255, 0.55);
+        border-radius: 16px;
         padding: 20px;
-        box-shadow: 0 0 12px rgba(0,0,0,0.1);
+        box-shadow: 0 0 18px rgba(0,0,0,0.15);
+    }
+
+    #header {
+        text-align: center;
+        margin-bottom: 15px;
+        font-family: "Fredoka", sans-serif;
+    }
+
+    #header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+    }
+
+    #header p {
+        margin: 0;
+        margin-top: 4px;
+        font-size: 14px;
+        opacity: 0.7;
     }
 
     #messages {
-        height: 300px;
+        height: 320px;
         overflow-y: auto;
-        border: 1px solid #ddd;
-        border-radius: 8px;
+        border-radius: 10px;
         padding: 10px;
-        background: #fafafa;
+        background: rgba(255, 255, 255, 0.65);
+        border: 1px solid #ddd;
         margin-bottom: 15px;
     }
 
     .msg {
         margin-bottom: 10px;
-        padding: 6px 10px;
-        border-radius: 6px;
+        padding: 8px 12px;
+        border-radius: 8px;
         background: #fff;
         border: 1px solid #eee;
         word-wrap: break-word;
+    }
+
+    .msg img {
+        max-width: 100%;
+        border-radius: 6px;
+        margin-top: 6px;
     }
 
     #inputs {
@@ -62,22 +95,40 @@
     button:hover {
         background: #357ac9;
     }
+
+    #image-preview {
+        max-width: 100%;
+        margin-top: 8px;
+        display: none;
+        border-radius: 8px;
+    }
 </style>
 </head>
 <body>
 
 <div id="chat-container">
+
+    <div id="header">
+        <h1>Deblocked Chat</h1>
+        <p>Online: <span id="online-count">0</span></p>
+    </div>
+
     <div id="messages"></div>
+
+    <img id="image-preview">
 
     <div id="inputs">
         <input id="username" placeholder="Enter username">
         <input id="message" placeholder="Enter message">
-        <button id="send">Send</button>
+
+        <input type="file" id="image-upload" accept="image/*">
+
+        <button id="send">Send Message</button>
+        <button id="send-image">Send Image</button>
     </div>
 </div>
 
 <script>
-    // Automatically choose ws:// for local dev, wss:// for production
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${protocol}://${window.location.host}`);
 
@@ -85,10 +136,29 @@
     const usernameInput = document.getElementById("username");
     const messageInput = document.getElementById("message");
     const sendBtn = document.getElementById("send");
+    const sendImageBtn = document.getElementById("send-image");
+    const imageUpload = document.getElementById("image-upload");
+    const imagePreview = document.getElementById("image-preview");
+    const onlineCount = document.getElementById("online-count");
 
     let usernameLocked = false;
+    let selectedImage = null;
 
-    // Send message
+    // Preview image
+    imageUpload.onchange = () => {
+        const file = imageUpload.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            selectedImage = reader.result;
+            imagePreview.src = selectedImage;
+            imagePreview.style.display = "block";
+        };
+        reader.readAsDataURL(file);
+    };
+
+    // Send text
     sendBtn.onclick = () => {
         const username = usernameInput.value.trim();
         const message = messageInput.value.trim();
@@ -100,32 +170,50 @@
             usernameLocked = true;
         }
 
-        ws.send(JSON.stringify({ username, message }));
+        ws.send(JSON.stringify({ type: "text", username, message }));
         messageInput.value = "";
-        messageInput.focus();
     };
 
-    // Send on Enter key
-    messageInput.addEventListener("keydown", e => {
-        if (e.key === "Enter") sendBtn.onclick();
-    });
+    // Send image
+    sendImageBtn.onclick = () => {
+        const username = usernameInput.value.trim();
+        if (!username || !selectedImage) return;
+
+        if (!usernameLocked) {
+            usernameInput.disabled = true;
+            usernameLocked = true;
+        }
+
+        ws.send(JSON.stringify({ type: "image", username, image: selectedImage }));
+
+        selectedImage = null;
+        imagePreview.style.display = "none";
+        imageUpload.value = "";
+    };
 
     // Receive messages
     ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
 
+        if (data.type === "online") {
+            onlineCount.textContent = data.count;
+            return;
+        }
+
         const div = document.createElement("div");
         div.className = "msg";
-        div.innerHTML = `<strong style="color:${data.color}">${data.username}:</strong> ${data.message}`;
+
+        if (data.type === "text") {
+            div.innerHTML = `<strong style="color:${data.color}">${data.username}:</strong> ${data.message}`;
+        }
+
+        if (data.type === "image") {
+            div.innerHTML = `<strong style="color:${data.color}">${data.username}:</strong><br><img src="${data.image}">`;
+        }
 
         messages.appendChild(div);
         messages.scrollTop = messages.scrollHeight;
     };
-
-    // Debug connection status
-    ws.onopen = () => console.log("Connected to WebSocket");
-    ws.onerror = (err) => console.log("WebSocket error:", err);
-    ws.onclose = () => console.log("WebSocket closed");
 </script>
 
 </body>
