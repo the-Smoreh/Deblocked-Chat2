@@ -36,6 +36,7 @@
         border-radius: 6px;
         background: #fff;
         border: 1px solid #eee;
+        word-wrap: break-word;
     }
 
     #inputs {
@@ -76,7 +77,10 @@
 </div>
 
 <script>
-    const ws = new WebSocket("ws://localhost:3000");
+    // Automatically choose ws:// for local dev, wss:// for production
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const ws = new WebSocket(`${protocol}://${window.location.host}`);
+
     const messages = document.getElementById("messages");
     const usernameInput = document.getElementById("username");
     const messageInput = document.getElementById("message");
@@ -84,6 +88,7 @@
 
     let usernameLocked = false;
 
+    // Send message
     sendBtn.onclick = () => {
         const username = usernameInput.value.trim();
         const message = messageInput.value.trim();
@@ -97,8 +102,15 @@
 
         ws.send(JSON.stringify({ username, message }));
         messageInput.value = "";
+        messageInput.focus();
     };
 
+    // Send on Enter key
+    messageInput.addEventListener("keydown", e => {
+        if (e.key === "Enter") sendBtn.onclick();
+    });
+
+    // Receive messages
     ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
 
@@ -109,6 +121,11 @@
         messages.appendChild(div);
         messages.scrollTop = messages.scrollHeight;
     };
+
+    // Debug connection status
+    ws.onopen = () => console.log("Connected to WebSocket");
+    ws.onerror = (err) => console.log("WebSocket error:", err);
+    ws.onclose = () => console.log("WebSocket closed");
 </script>
 
 </body>
