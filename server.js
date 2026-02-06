@@ -7,7 +7,8 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-app.use(express.static(path.join(__dirname)));
+// Serve static files (index.html must be in the same folder)
+app.use(express.static(__dirname));
 
 // Health check for Railway
 app.get("/health", (req, res) => res.send("OK"));
